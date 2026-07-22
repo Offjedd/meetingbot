@@ -13,7 +13,7 @@ import { Calendar } from "~/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Video, CalendarIcon, Clock, Zap, Users, Globe } from "lucide-react";
+import { Video, Calendar as CalendarIcon, Clock, Zap, Users, Globe } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 const platformMeta: Record<MeetingPlatform, { label: string; icon: typeof Globe; color: string }> = {

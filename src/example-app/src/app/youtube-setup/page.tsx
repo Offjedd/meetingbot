@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Youtube, CheckCircle2, AlertCircle, Link2 } from "lucide-react";
+import { Route as Youtube, CircleCheck as CheckCircle2, CircleAlert as AlertCircle, Link2 } from "lucide-react";
 
 export default function YouTubeSetupPage() {
   const [status, setStatus] = useState<"checking" | "connected" | "disconnected">("checking");

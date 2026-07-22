@@ -8,7 +8,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
-import { Globe, Video, Users, Play, Download, Youtube, FileText } from "lucide-react";
+import { Globe, Video, Users, Play, Download, Route as Youtube, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 const platformIcons: Record<string, typeof Globe> = { google: Globe, zoom: Video, teams: Users };
