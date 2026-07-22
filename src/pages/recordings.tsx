@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Play, Download, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL, apiHeaders } from "~/lib/api";
 
 export default function RecordingsPage() {
   const { user } = useAuth();
@@ -57,11 +58,17 @@ export default function RecordingsPage() {
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke("bot-callback", {
-        body: { botId: bot.id, status: "DONE", recordingUrl: bot.recording_url },
+      const backendBotId = bot.backend_bot_id;
+      if (!backendBotId) {
+        setVideoUrl(bot.recording_url);
+        return;
+      }
+      const res = await fetch(`${API_BASE_URL}/api/bots/${backendBotId}/recording`, {
+        headers: apiHeaders(),
       });
-      if (error) throw error;
-      setVideoUrl(data?.recordingUrl || bot.recording_url);
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const data = await res.json();
+      setVideoUrl(data.recordingUrl || bot.recording_url);
     } catch {
       setVideoUrl(bot.recording_url);
     }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/com
 import { Badge } from "~/components/ui/badge";
 import { toast } from "sonner";
 import { Youtube, Check, ExternalLink, RefreshCw } from "lucide-react";
+import { API_BASE_URL, apiHeaders } from "~/lib/api";
 
 export default function YouTubePage() {
   const { user } = useAuth();
@@ -18,10 +19,11 @@ export default function YouTubePage() {
 
   const checkStatus = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("youtube-status", {
-        body: { userId: user?.id },
+      const res = await fetch(`${API_BASE_URL}/api/youtube/status?userId=${user?.id}`, {
+        headers: apiHeaders(),
       });
-      if (error) throw error;
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const data = await res.json();
       setConnected(data?.connected ?? false);
     } catch {
       setConnected(false);

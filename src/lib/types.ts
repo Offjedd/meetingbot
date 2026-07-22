@@ -23,6 +23,7 @@ export interface Bot {
   youtube_video_id: string | null;
   youtube_upload_status: string | null;
   last_heartbeat: string | null;
+  backend_bot_id: number | null;
   created_at: string;
   updated_at: string;
 }

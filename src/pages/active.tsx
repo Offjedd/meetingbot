@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { Activity, Clock, CircleAlert as AlertCircle, Phone, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { API_BASE_URL, apiHeaders } from "~/lib/api";
 
 const statusColors: Record<string, string> = {
   DEPLOYING: "bg-blue-100 text-blue-800",
@@ -71,13 +72,34 @@ export default function ActivePage() {
       return;
     }
     try {
-      const { error: deployError } = await supabase.functions.invoke("deploy-bot", {
-        body: { botId: bot.id },
+      const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-callback`;
+      const res = await fetch(`${API_BASE_URL}/api/bots`, {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify({
+          userId: bot.user_id,
+          meetingTitle: bot.meeting_title,
+          meetingInfo: bot.meeting_info,
+          callbackUrl,
+        }),
       });
-      if (deployError) throw deployError;
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Deploy failed (${res.status}): ${errBody}`);
+      }
+      const backendBot = await res.json();
+      if (backendBot?.id) {
+        await supabase
+          .from("bots")
+          .update({ backend_bot_id: backendBot.id })
+          .eq("id", bot.id);
+      }
       toast.success("Deploying bot now");
-    } catch {
-      toast.error("Failed to trigger deployment on backend");
+    } catch (deployErr) {
+      toast.error(
+        "Failed to deploy: " +
+          (deployErr instanceof Error ? deployErr.message : "Unknown error")
+      );
     }
   };
 
