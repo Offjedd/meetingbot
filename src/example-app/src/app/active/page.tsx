@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "~/lib/supabase/client";
 import type { Bot, BotEvent } from "~/lib/types";
 import { Card, CardContent } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { Globe, Video, Users, Bot as BotIcon, Clock, Activity, Zap } from "lucide-react";
