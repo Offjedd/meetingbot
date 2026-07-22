@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import {
   bots,
@@ -100,10 +101,18 @@ export const botsRouter = createTRPCRouter({
         // Check if we should deploy immediately
         if (await shouldDeployImmediately(input.startTime)) {
           console.log("Deploying bot immediately...");
-          return await deployBot({
-            botId: result[0].id,
-            db: ctx.db,
-          });
+          try {
+            return await deployBot({
+              botId: result[0].id,
+              db: ctx.db,
+            });
+          } catch (error) {
+            console.error("Error deploying bot:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: error instanceof Error ? error.message : "Failed to deploy bot",
+            });
+          }
         }
 
         return result[0];
@@ -357,10 +366,18 @@ export const botsRouter = createTRPCRouter({
         throw new Error("Bot not found");
       }
 
-      return await deployBot({
-        botId: input.id,
-        db: ctx.db,
-      });
+      try {
+        return await deployBot({
+          botId: input.id,
+          db: ctx.db,
+        });
+      } catch (error) {
+        console.error("Error deploying bot:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to deploy bot",
+        });
+      }
     }),
 
   getActiveBotCount: protectedProcedure

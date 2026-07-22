@@ -17,7 +17,7 @@ import { env } from "~/env";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const deploymentMode = (process.env.DEPLOYMENT_MODE ?? "ecs").toLowerCase();
+const deploymentMode = (env.DEPLOYMENT_MODE ?? "ecs").toLowerCase();
 
 // Only create ECS client if using ECS deployment mode
 let client: ECSClient | null = null;
@@ -204,7 +204,7 @@ export async function deployBot({
         dockerProcess.on("error", (error) => {
           reject(
             new BotDeploymentError(
-              `Failed to spawn docker process: ${error.message}`,
+              `Failed to spawn docker process: ${error.message}. Is Docker installed and in PATH?`,
             ),
           );
         });
