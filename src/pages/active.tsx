@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 import { Activity, Clock, CircleAlert as AlertCircle, Phone, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { API_BASE_URL, apiHeaders } from "~/lib/api";
+
 
 const statusColors: Record<string, string> = {
   DEPLOYING: "bg-blue-100 text-blue-800",
@@ -73,9 +73,13 @@ export default function ActivePage() {
     }
     try {
       const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-callback`;
-      const res = await fetch(`${API_BASE_URL}/api/bots`, {
+      const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-proxy`;
+      const res = await fetch(proxyUrl, {
         method: "POST",
-        headers: apiHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
         body: JSON.stringify({
           userId: bot.user_id,
           meetingTitle: bot.meeting_title,

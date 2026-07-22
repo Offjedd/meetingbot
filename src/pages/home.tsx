@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "~/lib/auth-context";
 import { supabase } from "~/lib/supabase";
-import { API_BASE_URL, apiHeaders } from "~/lib/api";
+
 import { detectPlatform, defineMeetingInfo } from "~/lib/meeting-parser";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -60,9 +60,13 @@ export default function HomePage() {
     } else if (scheduleMode === "immediate" && botData) {
       try {
         const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-callback`;
-        const res = await fetch(`${API_BASE_URL}/api/bots`, {
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-proxy`;
+        const res = await fetch(proxyUrl, {
           method: "POST",
-          headers: apiHeaders(),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({
             userId: user?.id,
             meetingTitle: botData.meeting_title,

@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { Play, Download, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL, apiHeaders } from "~/lib/api";
+
 
 export default function RecordingsPage() {
   const { user } = useAuth();
@@ -63,8 +63,11 @@ export default function RecordingsPage() {
         setVideoUrl(bot.recording_url);
         return;
       }
-      const res = await fetch(`${API_BASE_URL}/api/bots/${backendBotId}/recording`, {
-        headers: apiHeaders(),
+      const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-get-proxy?path=/api/bots/${backendBotId}/recording`;
+      const res = await fetch(proxyUrl, {
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
       });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const data = await res.json();

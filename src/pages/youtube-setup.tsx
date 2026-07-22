@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/com
 import { Badge } from "~/components/ui/badge";
 import { toast } from "sonner";
 import { Youtube, Check, ExternalLink, RefreshCw } from "lucide-react";
-import { API_BASE_URL, apiHeaders } from "~/lib/api";
+
 
 export default function YouTubePage() {
   const { user } = useAuth();
@@ -19,8 +19,11 @@ export default function YouTubePage() {
 
   const checkStatus = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/youtube/status?userId=${user?.id}`, {
-        headers: apiHeaders(),
+      const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-get-proxy?path=/api/youtube/status?userId=${user?.id}`;
+      const res = await fetch(proxyUrl, {
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
       });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const data = await res.json();
