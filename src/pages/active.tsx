@@ -9,7 +9,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "~/components/ui/dialog";
 import { toast } from "sonner";
-import { Activity, Clock, AlertCircle, Phone, RefreshCw } from "lucide-react";
+import { Activity, Clock, CircleAlert as AlertCircle, Phone, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const statusColors: Record<string, string> = {
