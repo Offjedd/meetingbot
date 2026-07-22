@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { Activity, Clock, CircleAlert as AlertCircle, Phone, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { API_BASE_URL } from "~/lib/api";
 
 const statusColors: Record<string, string> = {
   DEPLOYING: "bg-blue-100 text-blue-800",
@@ -66,8 +67,21 @@ export default function ActivePage() {
       .from("bots")
       .update({ status: "DEPLOYING", scheduled_at: null })
       .eq("id", bot.id);
-    if (error) toast.error("Failed to deploy");
-    else toast.success("Deploying bot now");
+    if (error) {
+      toast.error("Failed to deploy");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/bots/deploy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botId: bot.id, meetingUrl: bot.meeting_url, platform: bot.platform, meetingInfo: bot.meeting_info }),
+      });
+      if (!res.ok) throw new Error(`Deploy failed (${res.status})`);
+      toast.success("Deploying bot now");
+    } catch {
+      toast.error("Failed to trigger deployment on backend");
+    }
   };
 
   const inCall = bots.filter((b) => ["IN_CALL", "RECORDING"].includes(b.status)).length;

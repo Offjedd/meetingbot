@@ -14,12 +14,14 @@ import {
 import { toast } from "sonner";
 import { Play, Download, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "~/lib/api";
 
 export default function RecordingsPage() {
   const { user } = useAuth();
   const [bots, setBots] = useState<Bot[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchRecordings = useCallback(async () => {
@@ -46,6 +48,24 @@ export default function RecordingsPage() {
       </div>
     );
   }
+
+  const playRecording = async (bot: Bot) => {
+    setSelectedBot(bot);
+    setVideoUrl(null);
+    if (!bot.recording_url) return;
+    if (bot.recording_url.startsWith("http")) {
+      setVideoUrl(bot.recording_url);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/bots/${bot.id}/recording`);
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const data = await res.json();
+      setVideoUrl(data.url || bot.recording_url);
+    } catch {
+      setVideoUrl(bot.recording_url);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -91,7 +111,7 @@ export default function RecordingsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setSelectedBot(bot)}>
+                      <Button size="sm" variant="ghost" onClick={() => playRecording(bot)}>
                         <Play className="size-4" />
                       </Button>
                       <Button
@@ -117,14 +137,20 @@ export default function RecordingsPage() {
           </DialogHeader>
           {selectedBot?.recording_url && (
             <div className="space-y-3">
-              <video
-                src={selectedBot.recording_url}
-                controls
-                className="w-full rounded-lg bg-black"
-              />
+              {videoUrl === null ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <video
+                  src={videoUrl || undefined}
+                  controls
+                  className="w-full rounded-lg bg-black"
+                />
+              )}
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" asChild>
-                  <a href={selectedBot.recording_url} download>
+                  <a href={videoUrl || selectedBot.recording_url} download>
                     <Download className="size-4" /> Download
                   </a>
                 </Button>
