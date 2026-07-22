@@ -26,7 +26,7 @@ export default function TranscriptsPage() {
     if (!user) return;
     const { data } = await supabase
       .from("transcripts")
-      .select("*, bots(title, platform)")
+      .select("*, bots(meeting_title, platform)")
       .order("created_at", { ascending: false });
     if (data) {
       setTranscripts(data);

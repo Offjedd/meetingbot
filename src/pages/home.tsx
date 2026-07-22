@@ -46,6 +46,7 @@ export default function HomePage() {
     }
 
     const { data: botData, error } = await supabase.from("bots").insert({
+      user_id: user.id,
       meeting_url: meetingLink,
       platform,
       meeting_title: title || `${platformLabel[platform]} Meeting`,
