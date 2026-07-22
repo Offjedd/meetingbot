@@ -17,18 +17,46 @@ import { env } from "~/env";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const config: ECSClientConfig = {
-  region: env.AWS_REGION,
-};
+const deploymentMode = (process.env.DEPLOYMENT_MODE ?? "ecs").toLowerCase();
 
-if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
-  config.credentials = {
-    accessKeyId: env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+// Only create ECS client if using ECS deployment mode
+let client: ECSClient | null = null;
+if (deploymentMode === "ecs") {
+  const config: ECSClientConfig = {
+    region: env.AWS_REGION,
   };
+
+  if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
+    config.credentials = {
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    };
+  }
+
+  client = new ECSClient(config);
 }
 
-const client = new ECSClient(config);
+/**
+ * Maps platform name to the corresponding Docker image name.
+ * @param platform - The meeting platform (google, teams, zoom)
+ * @returns The Docker image name to use for deployment
+ */
+export function selectBotDockerImage(
+  meetingInfo: schema.MeetingInfo,
+): string {
+  const platform = meetingInfo.platform;
+
+  switch (platform?.toLowerCase()) {
+    case "google":
+      return process.env.DOCKER_IMAGE_MEET ?? "meeting-bot-meet";
+    case "teams":
+      return process.env.DOCKER_IMAGE_TEAMS ?? "meeting-bot-teams";
+    case "zoom":
+      return process.env.DOCKER_IMAGE_ZOOM ?? "meeting-bot-zoom";
+    default:
+      throw new Error(`Unsupported platform: ${platform}`);
+  }
+}
 
 /**
  * Selects the appropriate bot task definition based on meeting information
@@ -116,8 +144,73 @@ export async function deployBot({
       botProcess.on("error", (error) => {
         console.error(`Bot ${botId} process error:`, error);
       });
+    } else if (deploymentMode === "docker") {
+      // Deploy bot as a local Docker container (for VPS deployments like Contabo)
+      const dockerImage = selectBotDockerImage(bot.meetingInfo);
+      const containerName = `bot-${botId}`;
+
+      const dockerArgs = [
+        "run",
+        "-d",
+        "--name",
+        containerName,
+        "--rm",
+        "-e",
+        `BOT_DATA=${JSON.stringify(config)}`,
+        "-e",
+        `AWS_BUCKET_NAME=${process.env.AWS_BUCKET_NAME ?? ""}`,
+        "-e",
+        `AWS_REGION=${process.env.AWS_REGION ?? ""}`,
+        "-e",
+        `AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID ?? ""}`,
+        "-e",
+        `AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY ?? ""}`,
+        "-e",
+        `NODE_ENV=production`,
+        "--shm-size=1g",
+        dockerImage,
+      ];
+
+      console.log(`Deploying bot ${botId} as Docker container ${containerName} using image ${dockerImage}`);
+
+      const dockerProcess = spawn("docker", dockerArgs, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let dockerStdout = "";
+      let dockerStderr = "";
+
+      dockerProcess.stdout.on("data", (data) => {
+        dockerStdout += data.toString();
+        console.log(`Bot ${botId} docker stdout: ${data}`);
+      });
+      dockerProcess.stderr.on("data", (data) => {
+        dockerStderr += data.toString();
+        console.error(`Bot ${botId} docker stderr: ${data}`);
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        dockerProcess.on("close", (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(
+              new BotDeploymentError(
+                `Docker container failed to start (exit code ${code}): ${dockerStderr}`,
+              ),
+            );
+          }
+        });
+        dockerProcess.on("error", (error) => {
+          reject(
+            new BotDeploymentError(
+              `Failed to spawn docker process: ${error.message}`,
+            ),
+          );
+        });
+      });
     } else {
-      // todo: i'm not sure if this works as intended
+      // ECS Fargate deployment (AWS)
       const input: RunTaskRequest = {
         cluster: env.ECS_CLUSTER_NAME,
         // taskDefinition: env.ECS_TASK_DEFINITION_MEET,
@@ -147,7 +240,7 @@ export async function deployBot({
       };
 
       const command = new RunTaskCommand(input);
-      await client.send(command);
+      await client!.send(command);
     }
 
     // Update status to joining call

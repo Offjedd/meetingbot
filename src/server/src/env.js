@@ -38,41 +38,18 @@ export const env = createEnv({
     AWS_BUCKET_NAME:
       process.env.NODE_ENV === "test"
         ? z.preprocess(() => "fake_aws_bucket_name", z.string())
-        : z.string(),
+        : z.string().optional(),
     AWS_REGION:
       process.env.NODE_ENV === "test"
         ? z.preprocess(() => "fake_aws_region", z.string())
-        : z.string(),
-    ECS_TASK_DEFINITION_MEET:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_TASK_DEFINITION_TEAMS:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_TASK_DEFINITION_ZOOM:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_CLUSTER_NAME:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_SUBNETS:
-      process.env.NODE_ENV === "production"
-        ? z.preprocess(
-            (val) => (typeof val === "string" ? val.split(",") : []),
-            z.array(z.string()),
-          )
-        : z.array(z.string()).default([]),
-    ECS_SECURITY_GROUPS:
-      process.env.NODE_ENV === "production"
-        ? z.preprocess(
-            (val) => (typeof val === "string" ? val.split(",") : []),
-            z.array(z.string()),
-          )
-        : z.array(z.string()).default([]),
+        : z.string().optional(),
+    DEPLOYMENT_MODE: z.enum(["ecs", "docker"]).default("ecs"),
+    ECS_TASK_DEFINITION_MEET: z.string().default(""),
+    ECS_TASK_DEFINITION_TEAMS: z.string().default(""),
+    ECS_TASK_DEFINITION_ZOOM: z.string().default(""),
+    ECS_CLUSTER_NAME: z.string().default(""),
+    ECS_SUBNETS: z.array(z.string()).default([]),
+    ECS_SECURITY_GROUPS: z.array(z.string()).default([]),
   },
 
   /**
@@ -99,6 +76,7 @@ export const env = createEnv({
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
     AWS_REGION: process.env.AWS_REGION,
+    DEPLOYMENT_MODE: process.env.DEPLOYMENT_MODE,
     ECS_TASK_DEFINITION_MEET: process.env.ECS_TASK_DEFINITION_MEET,
     ECS_TASK_DEFINITION_TEAMS: process.env.ECS_TASK_DEFINITION_TEAMS,
     ECS_TASK_DEFINITION_ZOOM: process.env.ECS_TASK_DEFINITION_ZOOM,
