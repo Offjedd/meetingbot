@@ -1,0 +1,145 @@
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "~/lib/auth-context";
+import { supabase } from "~/lib/supabase";
+import { Bot } from "~/lib/types";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "~/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "~/components/ui/table";
+import { toast } from "sonner";
+import { Play, Download, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+export default function RecordingsPage() {
+  const { user } = useAuth();
+  const [bots, setBots] = useState<Bot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
+  const navigate = useNavigate();
+
+  const fetchRecordings = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("bots")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "DONE")
+      .not("recording_url", "is", null)
+      .order("created_at", { ascending: false });
+    if (data) setBots(data);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchRecordings();
+  }, [fetchRecordings]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <RefreshCw className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Recordings</h1>
+        <p className="text-muted-foreground">View and manage your meeting recordings</p>
+      </div>
+
+      {bots.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            No recordings yet. Deploy a bot to start recording meetings.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Meeting</TableHead>
+                <TableHead>Platform</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>YouTube</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bots.map((bot) => (
+                <TableRow key={bot.id}>
+                  <TableCell className="font-medium">{bot.title}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{bot.platform}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(bot.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {bot.youtube_url ? (
+                      <Badge className="bg-red-100 text-red-800">Uploaded</Badge>
+                    ) : (
+                      <Badge variant="outline">Not uploaded</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedBot(bot)}>
+                        <Play className="size-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/transcripts?botId=${bot.id}`)}
+                      >
+                        Transcript
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedBot?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedBot?.recording_url && (
+            <div className="space-y-3">
+              <video
+                src={selectedBot.recording_url}
+                controls
+                className="w-full rounded-lg bg-black"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <a href={selectedBot.recording_url} download>
+                    <Download className="size-4" /> Download
+                  </a>
+                </Button>
+                {selectedBot.youtube_url && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={selectedBot.youtube_url} target="_blank" rel="noopener noreferrer">
+                      YouTube
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
