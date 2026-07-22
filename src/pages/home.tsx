@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "~/lib/auth-context";
 import { supabase } from "~/lib/supabase";
-import { API_BASE_URL } from "~/lib/api";
 import { detectPlatform, defineMeetingInfo } from "~/lib/meeting-parser";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -59,14 +58,12 @@ export default function HomePage() {
       toast.error("Failed to create bot: " + error.message);
     } else if (scheduleMode === "immediate" && botData) {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/bots/deploy`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ botId: botData.id, meetingUrl: meetingLink, platform, meetingInfo }),
+        const { error: deployError } = await supabase.functions.invoke("deploy-bot", {
+          body: { botId: botData.id },
         });
-        if (!res.ok) throw new Error(`Deploy failed (${res.status})`);
+        if (deployError) throw deployError;
         toast.success("Bot is being deployed to your meeting!");
-      } catch {
+      } catch (deployErr) {
         toast.error("Bot created but failed to deploy. You can deploy from Active Bots.");
       }
       setMeetingLink("");

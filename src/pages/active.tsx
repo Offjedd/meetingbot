@@ -11,7 +11,6 @@ import {
 import { toast } from "sonner";
 import { Activity, Clock, CircleAlert as AlertCircle, Phone, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { API_BASE_URL } from "~/lib/api";
 
 const statusColors: Record<string, string> = {
   DEPLOYING: "bg-blue-100 text-blue-800",
@@ -72,12 +71,10 @@ export default function ActivePage() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/api/bots/deploy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botId: bot.id, meetingUrl: bot.meeting_url, platform: bot.platform, meetingInfo: bot.meeting_info }),
+      const { error: deployError } = await supabase.functions.invoke("deploy-bot", {
+        body: { botId: bot.id },
       });
-      if (!res.ok) throw new Error(`Deploy failed (${res.status})`);
+      if (deployError) throw deployError;
       toast.success("Deploying bot now");
     } catch {
       toast.error("Failed to trigger deployment on backend");
