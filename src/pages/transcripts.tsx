@@ -10,7 +10,7 @@ import { Separator } from "~/components/ui/separator";
 import { RefreshCw, Search, FileText } from "lucide-react";
 
 interface TranscriptWithMeta extends Transcript {
-  bots?: { title: string; platform: string } | null;
+  bots?: { meeting_title: string; platform: string } | null;
 }
 
 export default function TranscriptsPage() {
@@ -32,7 +32,7 @@ export default function TranscriptsPage() {
       setTranscripts(data);
       const botIdParam = searchParams.get("botId");
       if (botIdParam) {
-        const match = data.find((t) => t.bot_id === Number(botIdParam));
+        const match = data.find((t) => t.bot_id === botIdParam);
         if (match) setSelected(match);
       }
     }
@@ -86,7 +86,7 @@ export default function TranscriptsPage() {
                 <div className="flex items-center gap-2">
                   <FileText className="size-4 text-muted-foreground shrink-0" />
                   <span className="font-medium text-sm truncate">
-                    {t.bots?.title || `Bot #${t.bot_id}`}
+                    {t.bots?.meeting_title || `Bot #${t.bot_id}`}
                   </span>
                 </div>
                 {t.bots?.platform && (
@@ -101,7 +101,7 @@ export default function TranscriptsPage() {
           {selected ? (
             <>
               <CardHeader>
-                <CardTitle className="text-lg">{selected.bots?.title || `Transcript #${selected.id}`}</CardTitle>
+                <CardTitle className="text-lg">{selected.bots?.meeting_title || `Transcript #${selected.id}`}</CardTitle>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                   <Input

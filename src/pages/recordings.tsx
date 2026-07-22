@@ -75,7 +75,7 @@ export default function RecordingsPage() {
             <TableBody>
               {bots.map((bot) => (
                 <TableRow key={bot.id}>
-                  <TableCell className="font-medium">{bot.title}</TableCell>
+                  <TableCell className="font-medium">{bot.meeting_title}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{bot.platform}</Badge>
                   </TableCell>
@@ -83,7 +83,7 @@ export default function RecordingsPage() {
                     {new Date(bot.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    {bot.youtube_url ? (
+                    {bot.youtube_video_id ? (
                       <Badge className="bg-red-100 text-red-800">Uploaded</Badge>
                     ) : (
                       <Badge variant="outline">Not uploaded</Badge>
@@ -113,7 +113,7 @@ export default function RecordingsPage() {
       <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedBot?.title}</DialogTitle>
+            <DialogTitle>{selectedBot?.meeting_title}</DialogTitle>
           </DialogHeader>
           {selectedBot?.recording_url && (
             <div className="space-y-3">
@@ -128,9 +128,9 @@ export default function RecordingsPage() {
                     <Download className="size-4" /> Download
                   </a>
                 </Button>
-                {selectedBot.youtube_url && (
+                {selectedBot.youtube_video_id && (
                   <Button size="sm" variant="outline" asChild>
-                    <a href={selectedBot.youtube_url} target="_blank" rel="noopener noreferrer">
+                    <a href={`https://www.youtube.com/watch?v=${selectedBot.youtube_video_id}`} target="_blank" rel="noopener noreferrer">
                       YouTube
                     </a>
                   </Button>

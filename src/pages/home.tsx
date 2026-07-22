@@ -45,10 +45,10 @@ export default function HomePage() {
     }
 
     const { error } = await supabase.from("bots").insert({
-      user_id: user.id,
       meeting_url: meetingLink,
       platform,
-      title: title || `${platformLabel[platform]} Meeting`,
+      meeting_title: title || `${platformLabel[platform]} Meeting`,
+      meeting_info: meetingInfo,
       status: scheduleMode === "immediate" ? "DEPLOYING" : "READY_TO_DEPLOY",
       scheduled_at: scheduledAt,
     });

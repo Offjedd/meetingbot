@@ -108,14 +108,14 @@ export default function ActivePage() {
             <Card key={bot.id} className="gap-3 py-4">
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm truncate">{bot.title}</span>
+                  <span className="font-medium text-sm truncate">{bot.meeting_title}</span>
                   <Badge className={statusColors[bot.status] || ""}>{bot.status}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>Platform: {bot.platform}</div>
-                  {bot.heartbeat && (
-                    <div className={`${Date.now() - new Date(bot.heartbeat).getTime() > 30000 ? "text-red-500" : ""}`}>
-                      Heartbeat: {formatDistanceToNow(new Date(bot.heartbeat), { addSuffix: true })}
+                  {bot.last_heartbeat && (
+                    <div className={`${Date.now() - new Date(bot.last_heartbeat).getTime() > 30000 ? "text-red-500" : ""}`}>
+                      Heartbeat: {formatDistanceToNow(new Date(bot.last_heartbeat), { addSuffix: true })}
                     </div>
                   )}
                   {bot.scheduled_at && <div>Scheduled: {new Date(bot.scheduled_at).toLocaleString()}</div>}
@@ -135,7 +135,7 @@ export default function ActivePage() {
       <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedBot?.title}</DialogTitle>
+            <DialogTitle>{selectedBot?.meeting_title}</DialogTitle>
             <DialogDescription>Bot events log</DialogDescription>
           </DialogHeader>
           <div className="max-h-64 overflow-y-auto space-y-2">
