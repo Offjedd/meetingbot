@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-bot-api-key",
 };
 
 Deno.serve(async (req: Request) => {
@@ -13,13 +13,15 @@ Deno.serve(async (req: Request) => {
 
   try {
     const endpoint = Deno.env.get("MEETINGBOT_ENDPOINT");
-    const apiKey = Deno.env.get("BOT_API_KEY");
-    if (!endpoint || !apiKey) {
+    if (!endpoint) {
       return new Response(
-        JSON.stringify({ error: "Missing MEETINGBOT_ENDPOINT or BOT_API_KEY secret" }),
+        JSON.stringify({ error: "Missing MEETINGBOT_ENDPOINT secret" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Prefer key forwarded from frontend, fall back to stored secret
+    const apiKey = req.headers.get("x-bot-api-key") || Deno.env.get("BOT_API_KEY") || "";
 
     const body = await req.json();
     const res = await fetch(`${endpoint}/api/bots`, {

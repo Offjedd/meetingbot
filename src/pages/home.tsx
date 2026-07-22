@@ -66,6 +66,7 @@ export default function HomePage() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            "x-bot-api-key": import.meta.env.VITE_API_KEY || "",
           },
           body: JSON.stringify({
             userId: user?.id,
