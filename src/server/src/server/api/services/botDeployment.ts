@@ -5,36 +5,13 @@ import type * as schema from "~/server/db/schema";
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  ECSClient,
-  type ECSClientConfig,
-  RunTaskCommand,
-  type RunTaskRequest,
-} from "@aws-sdk/client-ecs";
 import { env } from "~/env";
 
 // Get the directory path using import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const deploymentMode = (env.DEPLOYMENT_MODE ?? "ecs").toLowerCase();
-
-// Only create ECS client if using ECS deployment mode
-let client: ECSClient | null = null;
-if (deploymentMode === "ecs") {
-  const config: ECSClientConfig = {
-    region: env.AWS_REGION,
-  };
-
-  if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
-    config.credentials = {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    };
-  }
-
-  client = new ECSClient(config);
-}
+const deploymentMode = (env.DEPLOYMENT_MODE ?? "docker").toLowerCase();
 
 /**
  * Maps platform name to the corresponding Docker image name.
@@ -53,28 +30,6 @@ export function selectBotDockerImage(
       return process.env.DOCKER_IMAGE_TEAMS ?? "meeting-bot-teams";
     case "zoom":
       return process.env.DOCKER_IMAGE_ZOOM ?? "meeting-bot-zoom";
-    default:
-      throw new Error(`Unsupported platform: ${platform}`);
-  }
-}
-
-/**
- * Selects the appropriate bot task definition based on meeting information
- * @param meetingInfo - Information about the meeting, including platform
- * @returns The task definition ARN to use for deployment
- */
-export function selectBotTaskDefinition(
-  meetingInfo: schema.MeetingInfo,
-): string {
-  const platform = meetingInfo.platform;
-
-  switch (platform?.toLowerCase()) {
-    case "google":
-      return env.ECS_TASK_DEFINITION_MEET;
-    case "teams":
-      return env.ECS_TASK_DEFINITION_TEAMS;
-    case "zoom":
-      return env.ECS_TASK_DEFINITION_ZOOM;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
@@ -149,6 +104,9 @@ export async function deployBot({
       const dockerImage = selectBotDockerImage(bot.meetingInfo);
       const containerName = `bot-${botId}`;
 
+      const recordingsDir = process.env.RECORDINGS_DIR ?? "/data/recordings";
+      const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
+
       const dockerArgs = [
         "run",
         "-d",
@@ -158,15 +116,13 @@ export async function deployBot({
         "-e",
         `BOT_DATA=${JSON.stringify(config)}`,
         "-e",
-        `AWS_BUCKET_NAME=${process.env.AWS_BUCKET_NAME ?? ""}`,
+        `BACKEND_URL=${backendUrl}`,
         "-e",
-        `AWS_REGION=${process.env.AWS_REGION ?? ""}`,
-        "-e",
-        `AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID ?? ""}`,
-        "-e",
-        `AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY ?? ""}`,
+        `RECORDINGS_DIR=/data/recordings`,
         "-e",
         `NODE_ENV=production`,
+        "-v",
+        `${recordingsDir}:/data/recordings`,
         "--shm-size=1g",
         dockerImage,
       ];
@@ -210,37 +166,9 @@ export async function deployBot({
         });
       });
     } else {
-      // ECS Fargate deployment (AWS)
-      const input: RunTaskRequest = {
-        cluster: env.ECS_CLUSTER_NAME,
-        // taskDefinition: env.ECS_TASK_DEFINITION_MEET,
-        taskDefinition: selectBotTaskDefinition(bot.meetingInfo),
-        launchType: "FARGATE",
-        networkConfiguration: {
-          awsvpcConfiguration: {
-            // Read subnets from environment variables
-            subnets: env.ECS_SUBNETS,
-            securityGroups: env.ECS_SECURITY_GROUPS,
-            assignPublicIp: "ENABLED",
-          },
-        },
-        overrides: {
-          containerOverrides: [
-            {
-              name: "bot",
-              environment: [
-                {
-                  name: "BOT_DATA",
-                  value: JSON.stringify(config),
-                },
-              ],
-            },
-          ],
-        },
-      };
-
-      const command = new RunTaskCommand(input);
-      await client!.send(command);
+      throw new BotDeploymentError(
+        `Unsupported deployment mode: ${deploymentMode}. Only "docker" is supported.`,
+      );
     }
 
     // Update status to joining call

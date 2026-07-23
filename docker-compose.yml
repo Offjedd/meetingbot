@@ -1,0 +1,23 @@
+services:
+  server:
+    build:
+      context: ./src/server
+      dockerfile: Dockerfile
+    container_name: meetingbot-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
+      - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - DEPLOYMENT_MODE=docker
+      - RECORDINGS_DIR=/data/recordings
+      - PUBLIC_URL=${PUBLIC_URL}
+      - BACKEND_URL=http://localhost:3000
+    volumes:
+      - /data/recordings:/data/recordings
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped

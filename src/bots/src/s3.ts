@@ -1,118 +1,60 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { readFileSync, promises as fsPromises } from "fs";
+import { readFileSync, promises as fsPromises, existsSync } from "fs";
+import { join } from "path";
 import { Bot } from "./bot";
 import { randomUUID } from "crypto";
 
-/**
- * Creates an S3 Connection to the bucket.
- * 
- * @returns S3Client
- */
-export function createS3Client(region: string | undefined, accessKeyId: string | undefined, secretKey: string | undefined): S3Client|null {
-
-    try {
-
-        if (!region)
-            throw new Error("Region is required");
-
-        // Create an S3 client with credentials if they are provided
-        // Local Development requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
-        if (accessKeyId && secretKey) {
-            return new S3Client({
-                region,
-                credentials: {
-                    accessKeyId: accessKeyId,
-                    secretAccessKey: secretKey!,
-                },
-            });
-
-            // Production
-            // Credientials is not required on AWS, so we can use the default constructor.
-        } else {
-            return new S3Client({
-                region,
-            });
-        }
-
-    } catch (error) {
-        return null;
-    }
-}
+const RECORDINGS_DIR = process.env.RECORDINGS_DIR || "/data/recordings";
 
 /**
- * 
- * @param s3Client 
- * @param filePath 
+ * Saves the recording file to the local disk instead of uploading to S3.
+ * The file is copied to a shared recordings directory and the original is cleaned up.
+ *
+ * @returns The filename of the saved recording (used as the storage key).
  */
-export async function uploadRecordingToS3(s3Client: S3Client, bot: Bot): Promise<string> {
+export async function uploadRecordingToS3(_s3Client: unknown, bot: Bot): Promise<string> {
+  const filePath = bot.getRecordingPath();
+  let fileContent: Buffer;
+  let i = 10;
 
-    // Attempt to read the file path. Allow for time for the file to become available.
-    const filePath = bot.getRecordingPath();
-    let fileContent: Buffer;
-    let i = 10;
-
-    while (true) {
-        try {
-
-            fileContent = readFileSync(filePath);
-            console.log("Successfully read recording file");
-            break; // Exit loop if readFileSync is successful
-
-        } catch (error) {
-            const err = error as NodeJS.ErrnoException;
-
-            // Could not read file.
-
-            // Busy File
-            if (err.code === "EBUSY") {
-                console.log("File is busy, retrying...");
-                await new Promise(r => setTimeout(r, 1000)); // Wait for 1 second before retrying
-
-                // File DNE
-            } else if (err.code === "ENOENT") {
-
-                // Throw an Error
-                if (i < 0)
-                    throw new Error("File not found after multiple retries");
-
-                console.log("File not found, retrying ", i--, " more times");
-                await new Promise(r => setTimeout(r, 1000)); // Wait for 1 second before retrying
-
-                // Other Error
-            } else {
-                throw error; // Rethrow if it's a different error
-            }
-        }
-    }
-
-    // Create UUID and initialize key
-    const uuid = randomUUID();
-    const contentType = bot.getContentType();
-    const key = `recordings/${uuid}-${bot.settings.meetingInfo.platform
-        }-recording.${contentType.split("/")[1]}`;
-
+  while (true) {
     try {
-        const commandObjects = {
-            Bucket: process.env.AWS_BUCKET_NAME!,
-            Key: key,
-            Body: fileContent,
-            ContentType: contentType,
-        };
-
-        const putCommand = new PutObjectCommand(commandObjects);
-        await s3Client.send(putCommand);
-        console.log(`Successfully uploaded recording to S3: ${key}`);
-
-        // Clean up local file
-        await fsPromises.unlink(filePath);
-
-        // Return the Upload Key
-        return key;
-
+      fileContent = readFileSync(filePath);
+      console.log("Successfully read recording file");
+      break;
     } catch (error) {
-        console.error("Error uploading to S3:", error);
-    }
+      const err = error as NodeJS.ErrnoException;
 
-    // No Upload
+      if (err.code === "EBUSY") {
+        console.log("File is busy, retrying...");
+        await new Promise(r => setTimeout(r, 1000));
+      } else if (err.code === "ENOENT") {
+        if (i < 0)
+          throw new Error("File not found after multiple retries");
+        console.log("File not found, retrying ", i--, " more times");
+        await new Promise(r => setTimeout(r, 1000));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  const uuid = randomUUID();
+  const contentType = bot.getContentType();
+  const ext = contentType.split("/")[1] || "mp4";
+  const filename = `${uuid}-${bot.settings.meetingInfo.platform}-recording.${ext}`;
+  const destPath = join(RECORDINGS_DIR, filename);
+
+  try {
+    if (!existsSync(RECORDINGS_DIR)) {
+      await fsPromises.mkdir(RECORDINGS_DIR, { recursive: true });
+    }
+    await fsPromises.writeFile(destPath, fileContent);
+    console.log(`Successfully saved recording to local disk: ${filename}`);
+
+    await fsPromises.unlink(filePath);
+    return filename;
+  } catch (error) {
+    console.error("Error saving recording to local disk:", error);
     return '';
+  }
 }

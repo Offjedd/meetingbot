@@ -33,28 +33,14 @@ export const env = createEnv({
       process.env.NODE_ENV === "test"
         ? z.preprocess(() => "fake_github_token", z.string())
         : z.string(),
-    AWS_ACCESS_KEY_ID: z.string().optional(),
-    AWS_SECRET_ACCESS_KEY: z.string().optional(),
-    AWS_BUCKET_NAME:
-      process.env.NODE_ENV === "test"
-        ? z.preprocess(() => "fake_aws_bucket_name", z.string())
-        : z.string().optional(),
-    AWS_REGION:
-      process.env.NODE_ENV === "test"
-        ? z.preprocess(() => "fake_aws_region", z.string())
-        : z.string().optional(),
-    DEPLOYMENT_MODE: z.enum(["ecs", "docker"]).default("ecs"),
-    ECS_TASK_DEFINITION_MEET: z.string().default(""),
-    ECS_TASK_DEFINITION_TEAMS: z.string().default(""),
-    ECS_TASK_DEFINITION_ZOOM: z.string().default(""),
-    ECS_CLUSTER_NAME: z.string().default(""),
-    ECS_SUBNETS: z.array(z.string()).default([]),
-    ECS_SECURITY_GROUPS: z.array(z.string()).default([]),
+    DEPLOYMENT_MODE: z.enum(["ecs", "docker"]).default("docker"),
+    RECORDINGS_DIR: z.string().default("/data/recordings"),
+    BACKEND_URL: z.string().optional(),
+    PUBLIC_URL: z.string().optional(),
   },
 
   /**
-   * Specify your client-side environment variables schema here. This way you can ensure the app
-   * isn't built with invalid env vars. To expose them to the client, prefix them with
+   * Specify your client-side environment variables schema here. To expose them to the client, prefix them with
    * `NEXT_PUBLIC_`.
    */
   client: {
@@ -72,17 +58,10 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-    AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
-    AWS_REGION: process.env.AWS_REGION,
     DEPLOYMENT_MODE: process.env.DEPLOYMENT_MODE,
-    ECS_TASK_DEFINITION_MEET: process.env.ECS_TASK_DEFINITION_MEET,
-    ECS_TASK_DEFINITION_TEAMS: process.env.ECS_TASK_DEFINITION_TEAMS,
-    ECS_TASK_DEFINITION_ZOOM: process.env.ECS_TASK_DEFINITION_ZOOM,
-    ECS_CLUSTER_NAME: process.env.ECS_CLUSTER_NAME,
-    ECS_SUBNETS: process.env.ECS_SUBNETS,
-    ECS_SECURITY_GROUPS: process.env.ECS_SECURITY_GROUPS,
+    RECORDINGS_DIR: process.env.RECORDINGS_DIR,
+    BACKEND_URL: process.env.BACKEND_URL,
+    PUBLIC_URL: process.env.PUBLIC_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
@@ -90,8 +69,7 @@ export const env = createEnv({
    */
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   /**
-   * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
-   * `SOME_VAR=''` will throw an error.
+   * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and `SOME_VAR=''` will throw an error.
    */
   emptyStringAsUndefined: true,
 });

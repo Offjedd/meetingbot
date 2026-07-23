@@ -2,7 +2,7 @@ import { Bot, createBot } from "./bot";
 import dotenv from "dotenv";
 import { startHeartbeat, reportEvent } from "./monitoring";
 import { EventCode, type BotConfig } from "./types";
-import { createS3Client, uploadRecordingToS3 } from "./s3";
+import { uploadRecordingToS3 } from "./s3";
 
 dotenv.config({path: '../test.env'}); // Load test.env for testing
 dotenv.config();
@@ -11,8 +11,6 @@ export const main = async () => {
   let hasErrorOccurred = false;
   const requiredEnvVars = [
     "BOT_DATA",
-    "AWS_BUCKET_NAME",
-    "AWS_REGION",
     "NODE_ENV",
   ] as const;
 
@@ -30,12 +28,6 @@ export const main = async () => {
 
   // Declare key variable at the top level of the function
   let key: string = "";
-
-  // Initialize S3 client
-  const s3Client = createS3Client(process.env.AWS_REGION!, process.env.AWS_ACCESS_KEY_ID, process.env.AWS_SECRET_ACCESS_KEY);
-  if (!s3Client) {
-    throw new Error("Failed to create S3 client");
-  }
 
   // Create the appropriate bot instance based on platform
   const bot = await createBot(botData);
@@ -70,9 +62,9 @@ export const main = async () => {
       await bot.endLife();
     });
 
-    // Upload recording to S3
-    console.log("Start Upload to S3...");
-    key = await uploadRecordingToS3(s3Client, bot);
+    // Save recording to local disk
+    console.log("Start saving recording to local disk...");
+    key = await uploadRecordingToS3(null, bot);
 
 
   } catch (error) {
@@ -83,7 +75,7 @@ export const main = async () => {
     });
   }
 
-  // After S3 upload and cleanup, stop the heartbeat
+  // After saving recording and cleanup, stop the heartbeat
   heartbeatController.abort();
   console.log("Bot execution completed, heartbeat stopped.");
 
